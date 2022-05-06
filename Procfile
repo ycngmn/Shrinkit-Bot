@@ -1,2 +1,2 @@
-web: python p.py
-worker: python p.py
+web: python shrink.py
+worker: python shrink.py
