@@ -100,6 +100,8 @@ def history(c,msg):
   x = cu.fetchall()
   try:
     xx = x[0][0].strip().split(" ")
+    if len(xx)==0:
+      msg.reply("Nothing to show here yet... !")
     if len(xx)>15:
       xx = xx[:-1]
       cu.execute(f"UPDATE short SET history='{xx[0]}' WHERE UID={uid}") # update instead
