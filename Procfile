@@ -1,2 +1,1 @@
-worker: python shrink.py
-#web: python shrink.py
+worker: python3 shrink.py
