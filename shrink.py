@@ -348,5 +348,5 @@ async def spam(c,msg):
 
   
 
-
-bot.run()
+if __name__ == "__main__":
+    bot.run(port=443)
