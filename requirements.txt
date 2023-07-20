@@ -2,4 +2,3 @@ pyrogram
 pyromod
 requests
 tgcrypto
-gunicorn
