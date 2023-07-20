@@ -6,7 +6,7 @@ import sqlite3 # for storing data
 from pyrogram import Client,filters # for telegram bot ( docs.pyrogram.org )
 from pyromod.helpers import ikb
 from strings import *
-import os,requests,re,traceback # Helpers 
+import asyncio,requests,re,traceback # Helpers 
 
 track = {} # an odd way to track users current state in the bot
 # 0 assigned to /start button ( means main menu)
@@ -44,28 +44,29 @@ us = pyshortener.Shortener() # initializing pyshortener
 
 bot = Client( # setting pyrogram - visit my.telegram.org and @botfather 
   "shrinkitx",
-  api_id =  int(os.environ.get("ID")),
-  api_hash = os.environ.get("HASH"),
-  bot_token= os.environ.get("TOKEN"))
+  api_id = 1202095  ,
+  api_hash = "270177521a585bf52ea39a22f955f34d" ,
+  bot_token= "5072445413:AAGpdfXn_nuzZcVD9aX8veXb2j5Tji90Hs8")
 
+print("Bot started..")
 
-def shorts(msg,input):
+async def shorts(msg,input):
   if url_re.match(input):
     if not input.startswith(("http://", "https://")):
       input = f"http://{input}"
     try:
       r = requests.get(input,headers=headers)
       if r.status_code in [200,403,404]:
-        msg.reply("Please choose one from the services below in order to proceed :",reply_markup=short_board)
+        await msg.reply("Please choose one from the services below in order to proceed :",reply_markup=short_board)
         track[msg.from_user.id]=2
       else:
-        msg.delete()
+        await msg.delete()
     except Exception as e: 
-      msg.delete()
-  else: msg.delete()
+      await msg.delete()
+  else: await msg.delete()
 
 @bot.on_message(filters.command("start") & filters.private) # when bot gets command - /start
-def start(c,msg):     
+async def start(c,msg):     
   user = msg.from_user
   uid = msg.from_user.id
   track[uid]=0
@@ -75,25 +76,25 @@ def start(c,msg):
     cu.execute(f"INSERT INTO short VALUES ({uid},'none','none','none','none','none','none')")
     co.commit()
 
-  msg.reply(string.start_txt.format(user.mention)) # welcome message ?
+  await msg.reply(string.start_txt.format(user.mention)) # welcome message ?
 
 @bot.on_message(filters.command("set") & filters.private)
-def set(c,msg): 
+async def set(c,msg): 
   uid = msg.from_user.id
   if uid in track.keys() and str(track[uid]).startswith('5'):
-    c.delete_messages(uid,[int(msg.message_id)-1,int(msg.message_id)-2])
-    msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
+    await c.delete_messages(uid,[int(msg.id)-1,int(msg.id)-2])
+    await msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
     track[uid]=1
   elif uid in track.keys() and track[uid]==1:
-    c.delete_messages(uid,[int(msg.message_id)-1,int(msg.message_id)-2])
-    msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
+    await c.delete_messages(uid,[int(msg.id)-1,int(msg.id)-2])
+    await msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
     track[uid]=1
   else:
     track[uid]=1
-    msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
+    await msg.reply("Please choose the service you wish to proceed with :",reply_markup=set_board)
 
 @bot.on_message(filters.command("history") & filters.private)
-def history(c,msg):
+async def history(c,msg):
   uid = msg.from_user.id
   track[uid]=0
   cu.execute(f"SELECT history FROM short WHERE UID={uid}")
@@ -101,7 +102,7 @@ def history(c,msg):
   try:
     xx = x[0][0].strip().split(" ")
     if len(xx)==0:
-      msg.reply("Nothing to show here yet... !")
+      await msg.reply("Nothing to show here yet... !")
     if len(xx)>15:
       xx = xx[:-1]
       cu.execute(f"UPDATE short SET history='{xx[0]}' WHERE UID={uid}") # update instead
@@ -109,20 +110,20 @@ def history(c,msg):
     history_text = ""
     for n,xxx in enumerate(xx):
       history_text += f"- {xxx} \n"
-    msg.reply(f"Here is some of your latest Shrinkits :\n\n{history_text}",disable_web_page_preview=True)
+    await msg.reply(f"Here is some of your latest Shrinkits :\n\n{history_text}",disable_web_page_preview=True)
   except IndexError: 
-    msg.reply("Nothing to show here yet... !")
+    await msg.reply("Nothing to show here yet... !")
 
 @bot.on_message(filters.text & filters.private) # process all text message sent to bot
-def shortlink(c,msg): # track[uid]=2
+async def shortlink(c,msg): # track[uid]=2
   global input,service
   uid = msg.from_user.id
   input = msg.text
   if uid in track.keys() and not str(track[uid]).startswith(("5","2")) :
-    shorts(msg,input)
+    await shorts(msg,input)
   elif uid in track.keys() and track[uid]==2:
-    c.delete_messages(uid,[int(msg.message_id)-1,int(msg.message_id-2)])
-    shorts(msg,input)
+    await c.delete_messages(uid,[int(msg.id)-1,int(msg.id-2)])
+    await shorts(msg,input)
   if uid in track.keys() and track[uid]==51:
     try:
       bs = pyshortener.Shortener(api_key=input) 
@@ -130,11 +131,11 @@ def shortlink(c,msg): # track[uid]=2
       if result:
         cu.execute(f"UPDATE short SET bitly='{input}' WHERE UID={uid}")
         co.commit()
-        msg.reply("The API was saved successfully... ✅")
+        await msg.reply("The API was saved successfully... ✅")
         track[uid]=0
     except Exception as e:
       print(e)
-      msg.delete()
+      await msg.delete()
   if uid in track.keys() and track[uid]==52:
     try:
       bs = pyshortener.Shortener(api_key=input) 
@@ -142,7 +143,7 @@ def shortlink(c,msg): # track[uid]=2
       if result:
         cu.execute(f"UPDATE short SET cuttly='{input}' WHERE UID={uid}")
         co.commit()
-        msg.reply("The API was saved successfully... ✅")
+        await msg.reply("The API was saved successfully... ✅")
         track[uid]=0
     except Exception as e:
       print(e)
@@ -154,11 +155,11 @@ def shortlink(c,msg): # track[uid]=2
       if result:
         cu.execute(f"UPDATE short SET shortcm='{input}' WHERE UID={uid}")
         co.commit()
-        msg.reply("The API was saved successfully... ✅")
+        await msg.reply("The API was saved successfully... ✅")
         track[uid]=0
     except Exception as e:
       print(e)
-      msg.delete()
+      await msg.delete()
   if uid in track.keys() and track[uid]==53:
     try:
       inputx = input.split(' ')
@@ -167,12 +168,12 @@ def shortlink(c,msg): # track[uid]=2
       if result:
         cu.execute(f"UPDATE short SET adfly='{input}' WHERE UID={uid}")
         co.commit()
-        msg.delete()
-        msg.reply("The API was saved successfully... ✅")
+        await msg.delete()
+        await msg.reply("The API was saved successfully... ✅")
         track[uid]=0
     except Exception as e:
       print(traceback.print_exc())
-      msg.delete()
+      await msg.delete()
   if uid in track.keys() and track[uid]==54:
     try:
       inputx = input.split(' ')
@@ -181,8 +182,8 @@ def shortlink(c,msg): # track[uid]=2
       if result:
         cu.execute(f"UPDATE short SET tinycc='{input}' WHERE UID={uid}")
         co.commit()
-        msg.delete()
-        msg.reply("The API was saved successfully... ✅")
+        await msg.delete()
+        await msg.reply("The API was saved successfully... ✅")
         track[uid]=0
     except Exception as e:
       print(traceback.print_exc())
@@ -195,36 +196,36 @@ def shortlink(c,msg): # track[uid]=2
       service = input.split('_')[1]
       if service == 'bitly':
         if v[1]=='none':
-          msg.delete()
+          await msg.delete()
         else:
           msg.reply(string.rm_text,reply_markup=tiny_board)
       elif service == 'cuttly':
         if v[2]=='none':
-          msg.delete()
+          await msg.delete()
         else:
-          msg.reply(string.rm_text,reply_markup=tiny_board)
+          await msg.reply(string.rm_text,reply_markup=tiny_board)
       elif service == 'adfly':
         if v[3]=='none':
-          msg.delete()
+          await msg.delete()
         else:
-          msg.reply(string.rm_text,reply_markup=tiny_board)
+          await msg.reply(string.rm_text,reply_markup=tiny_board)
       elif service == 'tinycc':
         if v[4]=='none':
-          msg.delete()
+          await msg.delete()
         else:
-          msg.reply(string.rm_text,reply_markup=tiny_board)
+          await msg.reply(string.rm_text,reply_markup=tiny_board)
       elif service == 'shortcm':
         if v[5]=='none':
-          msg.delete()
+          await msg.delete()
         else:
-          msg.reply(string.rm_text,reply_markup=tiny_board)
-      else: msg.delete()
-    except: msg.delete()
+          await msg.reply(string.rm_text,reply_markup=tiny_board)
+      else: await msg.delete()
+    except: await msg.delete()
           
 
 
 @bot.on_callback_query() # Process all inline keyboards data
-def shortener(c,cd):
+async def shortener(c,cd):
   uid= cd.from_user.id
   cu.execute(f"SELECT * FROM short WHERE UID={uid}")
   v = cu.fetchall()
@@ -232,19 +233,19 @@ def shortener(c,cd):
     try:
       if cd.data == "bitly": # if data sent from inline keyboard is bitly, shrink using bit.ly
         if v[0][1]=="none": # if the user hadn't added bitly api yet :
-          cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
+          await cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
         else:
           bs = pyshortener.Shortener(api_key=v[0][1]) # else just shrink using api,thanks to pyshortener..
           result = bs.bitly.short(input)
       if cd.data == "cuttly": # shrink using cutt.ly
         if v[0][2]=="none":
-          cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
+          await cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
         else:
           bs = pyshortener.Shortener(api_key=v[0][2])
           result = bs.cuttly.short(input)
       if cd.data == "adfly": # shrink using adf.ly
         if v[0][3]=="none":
-          cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
+          await cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
         else:
           adfly_api = v[0][3].split(" ")[0]
           adfly_uid = v[0][3].split(" ")[1]
@@ -252,7 +253,7 @@ def shortener(c,cd):
           result = bs.adfly.short(input)
       if cd.data == "tinycc": # shrink using tiny.cc
         if v[0][4]=="none":
-          cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
+          await cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
         else:
           tiny_api = v[0][4].split(" ")[0]
           tiny_login = v[0][4].split(" ")[1]
@@ -260,7 +261,7 @@ def shortener(c,cd):
           result = bs.tinycc.short(input)
       if cd.data == "shortcm": # shrink using short.io
         if v[0][5]=="none":
-          cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
+          await cd.answer("Unauthorized! Use /set command to learn more..",show_alert=True)
         else:
           bs = pyshortener.Shortener(api_key=v[0][5])
           result = bs.shortcm.short(input)
@@ -273,7 +274,7 @@ def shortener(c,cd):
         result = us.chilpit.short(input)
       elif cd.data == "dagd":
         result = us.dagd.short(input)
-      cd.edit_message_text(result,disable_web_page_preview=True)
+      await cd.edit_message_text(result,disable_web_page_preview=True)
       cu.execute(f"SELECT history FROM short WHERE UID={uid}")
       vx = cu.fetchone()[0]
       if vx=='none':
@@ -288,33 +289,33 @@ def shortener(c,cd):
 
     except UnboundLocalError: pass # skips 'result is not defined' exception caused by api required shorteners..
     except Exception as e: # if any error occurs by misfortune show compassion XD
-      cd.edit_message_text(f"{e}",reply_markup=None)
+      await cd.edit_message_text(f"{e}",reply_markup=None)
       traceback.print_exc()
   
   elif track[uid]==1:
     if cd.data=="bitlys":
       if v[0][1]=="none":
-        cd.edit_message_text(string.text_bitly,reply_markup=None)
+        await cd.edit_message_text(string.text_bitly,reply_markup=None)
         track[uid]=51 # track 5 for api submission
       else:
         apis = v[0][1][:7]+"***"
-        cd.edit_message_text(string.text_authorized.format(apis,'bitly'),reply_markup=None,parse_mode='HTML')
+        await cd.edit_message_text(string.text_authorized.format(apis,'bitly'),reply_markup=None,parse_mode='HTML')
     if cd.data=="cuttlys":
       if v[0][2]=="none":
         track[uid]=52
-        cd.edit_message_text(string.text_cuttly,reply_markup=None,disable_web_page_preview=True)
+        await cd.edit_message_text(string.text_cuttly,reply_markup=None,disable_web_page_preview=True)
       else:
         apis = v[0][2][:7]+"***"
-        cd.edit_message_text(string.text_authorized.format(apis,'cuttly'),reply_markup=None,parse_mode='HTML')
+        await cd.edit_message_text(string.text_authorized.format(apis,'cuttly'),reply_markup=None,parse_mode='HTML')
     if cd.data=="adflys":
       if v[0][3]=="none":
         track[uid]=53
-        cd.edit_message_text(string.text_adfly,reply_markup=None,disable_web_page_preview=True)
+        await cd.edit_message_text(string.text_adfly,reply_markup=None,disable_web_page_preview=True)
       else:
         apis = v[0][3][:7]+"***"
-        cd.edit_message_text(string.text_authorized.format(apis,'adfly'),reply_markup=None,parse_mode='HTML')
+        await cd.edit_message_text(string.text_authorized.format(apis,'adfly'),reply_markup=None,parse_mode='HTML')
     if cd.data=="tinyccs":
-      cd.answer("Temporarily blocked due to a Bug !",show_alert=True) # Must fix once pyshortener fixes..
+      await cd.answer("Temporarily blocked due to a Bug !",show_alert=True) # Must fix once pyshortener fixes..
       #if v[0][4]=="none":
         #track[uid]=54
         #cd.edit_message_text(string.text_tinycc,reply_markup=None,disable_web_page_preview=True)
@@ -324,25 +325,25 @@ def shortener(c,cd):
     if cd.data=="shortcms":
       if v[0][5]=="none":
         track[uid]=55
-        cd.edit_message_text(string.text_shortcm,reply_markup=None,disable_web_page_preview=True)
+        await cd.edit_message_text(string.text_shortcm,reply_markup=None,disable_web_page_preview=True)
       else:
         apis = v[0][5][:7]+"****"
-        cd.edit_message_text(string.text_authorized.format(apis,'shortcm'),reply_markup=None,parse_mode='HTML')
+        await cd.edit_message_text(string.text_authorized.format(apis,'shortcm'),reply_markup=None,parse_mode='HTML')
   else:
-    cd.edit_message_text("Operation outdated.. !",reply_markup=None)
+    await cd.edit_message_text("Operation outdated.. !",reply_markup=None)
  
   if cd.data == "confirmd":
     cu.execute(f"UPDATE short SET {service}='none' WHERE UID={uid}")
     co.commit()
-    cd.edit_message_text("API is removed from the bot ... ✅")
+    await cd.edit_message_text("API is removed from the bot ... ✅")
   if cd.data=="cancel":
-    cd.edit_message_text("Operation has been cancelled...")
+    await cd.edit_message_text("Operation has been cancelled...")
 
 
 @bot.on_message(~filters.text | ~filters.private)
-def spam(c,msg):
+async def spam(c,msg):
   try:
-    msg.delete() 
+    await msg.delete() 
   except: pass
 
   
