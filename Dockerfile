@@ -7,4 +7,4 @@ RUN pip3 install -r requirements.txt
 COPY . .
 
 CMD python3 shrink.py
-EXPOSE 80/tcp
+EXPOSE 8081/tcp 8082/tcp
