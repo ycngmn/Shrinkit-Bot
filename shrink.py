@@ -346,7 +346,4 @@ async def spam(c,msg):
     await msg.delete() 
   except: pass
 
-  
-
-if __name__ == "__main__":
-    bot.run()
+bot.run()
