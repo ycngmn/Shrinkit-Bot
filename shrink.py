@@ -349,4 +349,4 @@ async def spam(c,msg):
   
 
 if __name__ == "__main__":
-    bot.run(port=443)
+    bot.run()
