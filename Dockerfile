@@ -8,4 +8,4 @@ COPY . .
 
 CMD python3 shrink.py
 
-Expose 443/tcp
+Expose 443
